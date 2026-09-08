@@ -1,0 +1,119 @@
+.property-card {
+    border:none;
+    border-radius:24px;
+    overflow:hidden;
+    transition:all .35s ease;
+    box-shadow:0 16px 40px rgba(15, 23, 42, 0.07);
+    background:#fff;
+    position:relative;
+}
+
+.favourite-btn {
+    position:absolute;
+    top:15px;
+    right:15px;
+    width:42px;
+    height:42px;
+    border:none;
+    border-radius:50%;
+    background:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+    color:#64748b;
+    box-shadow:0 8px 20px rgba(0,0,0,.12);
+    transition:all .25s ease;
+}
+
+.favourite-btn:hover {
+    transform:scale(1.08);
+}
+
+.favourite-btn.active {
+    color:#ef4444;
+    animation:heartPop .3s ease;
+}
+
+@keyframes heartPop {
+    0% { transform:scale(0.8); }
+    60% { transform:scale(1.2); }
+    100% { transform:scale(1); }
+}
+
+.property-card:hover {
+    transform:translateY(-8px) scale(1.01);
+    box-shadow:0 24px 60px rgba(15, 23, 42, 0.14);
+}
+
+.property-image {
+    height:240px;
+    width:100%;
+    object-fit:cover;
+    transition:transform .4s ease;
+    background:linear-gradient(135deg, #e2e8f0, #f8fafc);
+}
+
+.property-card:hover .property-image {
+    transform:scale(1.05);
+}
+
+.property-price {
+    color:var(--primary);
+    font-size:1.6rem;
+    font-weight:800;
+}
+
+.property-location {
+    color:var(--muted);
+    font-size:.95rem;
+}
+
+.property-icons {
+    display:flex;
+    justify-content:space-between;
+    color:#475569;
+    margin:16px 0;
+    padding-top:10px;
+    border-top:1px solid #f1f5f9;
+}
+
+.featured-badge,
+.verified-badge {
+    position:absolute;
+    top:14px;
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.01em;
+    box-shadow:0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.featured-badge {
+    left:14px;
+    background:linear-gradient(135deg, #f59e0b, #fbbf24);
+    color:white;
+}
+
+.verified-badge {
+    right:14px;
+    background:linear-gradient(135deg, var(--accent), #34d399);
+    color:white;
+}
+
+.property-card {
+    animation:fadeUp .7s ease;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity:0;
+        transform:translateY(30px);
+    }
+
+    to {
+        opacity:1;
+        transform:translateY(0);
+    }
+}

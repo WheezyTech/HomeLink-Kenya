@@ -1,0 +1,82 @@
+.auth-page{
+    min-height:100vh;
+    background:#f8fafc;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:40px 15px;
+}
+
+.auth-card{
+    width:100%;
+    max-width:450px;
+    background:#fff;
+    border-radius:20px;
+    padding:40px;
+    box-shadow:0 15px 40px rgba(0,0,0,.08);
+}
+
+.auth-icon{
+    width:65px;
+    height:65px;
+    margin:0 auto 20px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#e7f0ff;
+    color:#2563eb;
+    font-size:25px;
+}
+
+.auth-logo{
+    font-size:32px;
+    font-weight:700;
+    color:#2563eb;
+    text-align:center;
+}
+
+.auth-title{
+    text-align:center;
+    font-size:28px;
+    font-weight:700;
+    margin-top:20px;
+}
+
+.auth-subtitle{
+    text-align:center;
+    color:#6b7280;
+    margin-bottom:30px;
+}
+
+.form-control{
+    border-radius:12px;
+    padding:14px;
+}
+
+.position-relative{position:relative}
+.password-toggle{
+    position:absolute;
+    right:10px;
+    top:50%;
+    transform:translateY(-50%);
+    padding:6px 8px;
+}
+
+.password-requirements ul{margin:6px 0 0 14px;padding:0}
+.password-requirements li{font-size:13px;margin:4px 0}
+.password-requirements li.pass{color:green}
+.password-requirements li.fail{color:#9ca3af}
+
+.btn-auth{
+    width:100%;
+    border-radius:12px;
+    padding:14px;
+    font-size:18px;
+    font-weight:600;
+}
+
+.auth-footer{
+    text-align:center;
+    margin-top:20px;
+}
