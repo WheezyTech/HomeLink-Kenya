@@ -9,6 +9,7 @@ import propertyService from "../../services/propertyService";
 import PropertyCard from "../../components/properties/PropertyCard";
 import PropertyFilters from "../../components/properties/PropertyFilters";
 import SaveSearchButton from "../../components/properties/SaveSearchButton";
+import "../../styles/property.css";
 
 function Properties(){
 
@@ -87,7 +88,14 @@ function Properties(){
 
     if(loading){
 
-        return <h2>Loading properties...</h2>;
+        return (
+            <main className="properties-page">
+                <div className="container properties-loading">
+                    <span className="properties-loading-spinner" aria-hidden="true"></span>
+                    <h2>Loading properties...</h2>
+                </div>
+            </main>
+        );
 
     }
 
@@ -95,33 +103,46 @@ function Properties(){
 
     return (
 
-        <div>
+        <main className="properties-page">
+            <div className="container properties-content">
+                <header className="properties-header">
+                    <div>
+                        <p className="properties-eyebrow">HomeLink Kenya</p>
+                        <h1>Available Properties</h1>
+                        <p>Find a place that fits your life, location, and budget.</p>
+                    </div>
+                    <span className="properties-count">
+                        {properties.length} {properties.length === 1 ? "listing" : "listings"}
+                    </span>
+                </header>
 
-
-            <h1>
-                Available Properties
-            </h1>
-
-            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <div className="properties-toolbar">
                 <PropertyFilters onFilter={handleFilter} />
                 <SaveSearchButton filters={{}} />
+                </div>
+
+                {properties.length > 0 ? (
+                    <div className="properties-grid">
+                        {properties.map(
+                            property => (
+
+                                <PropertyCard
+                                    key={property.id}
+                                    property={property}
+                                />
+
+                            )
+                        )}
+                    </div>
+                ) : (
+                    <section className="properties-empty" aria-live="polite">
+                        <h2>No properties found</h2>
+                        <p>Try widening your search or clearing one of the filters.</p>
+                    </section>
+                )}
+
             </div>
-
-            {
-                properties.map(
-                    property => (
-
-                        <PropertyCard
-                            key={property.id}
-                            property={property}
-                        />
-
-                    )
-                )
-            }
-
-
-        </div>
+        </main>
 
     );
 

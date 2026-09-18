@@ -376,10 +376,48 @@ class UserVerification(models.Model):
         null=True,
     )
 
-    kra_pin = models.FileField(
-        upload_to="verification/kra/",
+    kra_pin = models.CharField(
+        max_length=11,
         blank=True,
         null=True,
+    )
+
+    kra_verification_status = models.CharField(
+        max_length=30,
+        choices=[
+            ("NOT_CHECKED", "Not Checked"),
+            ("PENDING", "Pending"),
+            ("VERIFIED", "Verified"),
+            ("FAILED", "Failed"),
+            ("MANUAL_REVIEW", "Manual Review"),
+        ],
+        default="NOT_CHECKED",
+    )
+
+    kra_obligation_status = models.CharField(
+        max_length=30,
+        choices=[
+            ("NOT_CHECKED", "Not Checked"),
+            ("FOUND", "Found"),
+            ("NOT_FOUND", "Not Found"),
+            ("UNKNOWN", "Unknown"),
+            ("MANUAL_REVIEW", "Manual Review"),
+        ],
+        default="NOT_CHECKED",
+    )
+
+    kra_verification_message = models.TextField(
+        blank=True,
+    )
+
+    kra_verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    kra_api_response = models.JSONField(
+        null=True,
+        blank=True,
     )
 
     business_certificate = models.FileField(

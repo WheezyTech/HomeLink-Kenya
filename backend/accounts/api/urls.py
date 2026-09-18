@@ -18,6 +18,7 @@ from .views import (
     ResendPhoneOTPAPIView,
     AgentViewSet,
     AgentProfileViewSet,
+    KRAVerificationAPIView,
 )
 
 urlpatterns = [
@@ -94,5 +95,11 @@ urlpatterns = [
     path(
         "admin/verifications/<uuid:pk>/",
         ReviewVerificationAPIView.as_view(),
+    ),
+
+    path(
+        "kra/verify/",
+        KRAVerificationAPIView.as_view(),
+        name="kra-verify",
     ),
 ]

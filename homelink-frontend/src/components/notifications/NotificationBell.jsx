@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { FaBell, FaHome } from "react-icons/fa";
 import api from "../../api/axios";
+import "../../styles/notification-bell.css";
 
 const WS_URL = "ws://127.0.0.1:8000/ws/notifications/";
 
@@ -174,13 +176,15 @@ export default function NotificationBell() {
 
 
     return (
-        <div className="relative">
+        <div className="notification-bell">
 
             <button
                 onClick={() =>
                     setOpen(!open)
                 }
-                className="relative p-2 rounded-full hover:bg-gray-100"
+                className="notification-bell__trigger"
+                aria-label={alerts.length > 0 ? `${alerts.length} unread notifications` : "Notifications"}
+                aria-expanded={open}
                 title={
                     connected
                         ? "Notifications connected"
@@ -188,12 +192,10 @@ export default function NotificationBell() {
                 }
             >
 
-                <span className="text-2xl">
-                    🔔
-                </span>
+                <FaBell aria-hidden="true" />
 
                 {alerts.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center">
+                    <span className="notification-bell__badge">
                         {alerts.length > 99
                             ? "99+"
                             : alerts.length}
@@ -205,17 +207,17 @@ export default function NotificationBell() {
 
             {open && (
 
-                <div className="absolute right-0 mt-3 w-[360px] max-w-[90vw] bg-white border rounded-xl shadow-xl z-50">
+                <div className="notification-bell__panel">
 
-                    <div className="p-4 border-b flex justify-between items-center">
+                    <div className="notification-bell__header">
 
                         <div>
 
-                            <h3 className="font-bold">
+                            <h3>
                                 Notifications
                             </h3>
 
-                            <p className="text-xs text-gray-500">
+                            <p className={`notification-bell__status ${connected ? "is-live" : "is-offline"}`}>
                                 {connected
                                     ? "● Live"
                                     : "● Offline"}
@@ -229,7 +231,7 @@ export default function NotificationBell() {
                                 onClick={
                                     markAllRead
                                 }
-                                className="text-sm text-blue-600"
+                                className="notification-bell__action"
                             >
                                 Mark all read
                             </button>
@@ -239,21 +241,21 @@ export default function NotificationBell() {
                     </div>
 
 
-                    <div className="max-h-[420px] overflow-y-auto">
+                    <div className="notification-bell__list">
 
                         {alerts.length === 0 ? (
 
-                            <div className="p-8 text-center">
+                            <div className="notification-bell__empty">
 
-                                <div className="text-3xl">
-                                    🔔
+                                <div className="notification-bell__empty-icon">
+                                    <FaBell aria-hidden="true" />
                                 </div>
 
-                                <p className="font-medium mt-2">
+                                <p className="notification-bell__empty-title">
                                     You're all caught up
                                 </p>
 
-                                <p className="text-sm text-gray-500 mt-1">
+                                <p className="notification-bell__empty-copy">
                                     New property matches
                                     will appear here.
                                 </p>
@@ -269,24 +271,24 @@ export default function NotificationBell() {
                                         key={
                                             alert.id
                                         }
-                                        className="p-4 border-b hover:bg-gray-50"
+                                        className="notification-bell__item"
                                     >
 
-                                        <div className="flex gap-3">
+                                        <div className="notification-bell__item-content">
 
-                                            <div className="text-xl">
-                                                🏠
+                                            <div className="notification-bell__item-icon">
+                                                <FaHome aria-hidden="true" />
                                             </div>
 
-                                            <div className="flex-1">
+                                            <div className="notification-bell__item-copy">
 
-                                                <h4 className="font-semibold text-sm">
+                                                <h4>
                                                     {
                                                         alert.title
                                                     }
                                                 </h4>
 
-                                                <p className="text-sm text-gray-600 mt-1">
+                                                <p>
                                                     {
                                                         alert.message
                                                     }
@@ -298,7 +300,7 @@ export default function NotificationBell() {
                                                             alert.id
                                                         )
                                                     }
-                                                    className="text-xs text-blue-600 mt-2"
+                                                    className="notification-bell__action"
                                                 >
                                                     Mark as read
                                                 </button>

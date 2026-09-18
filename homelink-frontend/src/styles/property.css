@@ -1,3 +1,114 @@
+.properties-page {
+    min-height: calc(100vh - 82px);
+    padding: 52px 0 80px;
+}
+
+.properties-content {
+    position: relative;
+}
+
+.properties-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.properties-eyebrow {
+    color: var(--primary);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+}
+
+.properties-header h1 {
+    color: var(--secondary);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -.04em;
+    margin: 0;
+}
+
+.properties-header p:last-child {
+    color: var(--muted);
+    margin: 10px 0 0;
+}
+
+.properties-count {
+    background: #eaf2ff;
+    border-radius: 999px;
+    color: var(--primary-dark);
+    font-size: .85rem;
+    font-weight: 700;
+    padding: 9px 14px;
+    white-space: nowrap;
+}
+
+.properties-toolbar {
+    align-items: flex-start;
+    display: flex;
+    gap: 18px;
+    margin-bottom: 32px;
+}
+
+.properties-toolbar .card {
+    flex: 1;
+    margin-bottom: 0 !important;
+}
+
+.properties-toolbar > :last-child {
+    flex: 0 0 auto;
+    margin-top: 12px;
+}
+
+.properties-grid {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.properties-grid .property-card {
+    min-width: 0;
+}
+
+.properties-loading,
+.properties-empty {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 52vh;
+    text-align: center;
+}
+
+.properties-loading h2,
+.properties-empty h2 {
+    color: var(--secondary);
+    font-size: 1.35rem;
+    margin: 16px 0 6px;
+}
+
+.properties-empty p {
+    color: var(--muted);
+    margin: 0;
+}
+
+.properties-loading-spinner {
+    border: 3px solid #dbeafe;
+    border-radius: 50%;
+    border-top-color: var(--primary);
+    height: 34px;
+    width: 34px;
+    animation: propertiesSpin .8s linear infinite;
+}
+
+@keyframes propertiesSpin {
+    to { transform: rotate(360deg); }
+}
+
 .property-card {
     border:none;
     border-radius:24px;
@@ -115,5 +226,31 @@
     to {
         opacity:1;
         transform:translateY(0);
+    }
+}
+
+@media (max-width: 992px) {
+    .properties-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .properties-page {
+        padding: 34px 0 56px;
+    }
+
+    .properties-header,
+    .properties-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .properties-toolbar > :last-child {
+        margin-top: 0;
+    }
+
+    .properties-grid {
+        grid-template-columns: 1fr;
     }
 }

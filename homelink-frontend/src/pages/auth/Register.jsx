@@ -32,6 +32,7 @@ function Register() {
         language: "en",
         marketing_consent: false,
         mpesa_number: "",
+        kra_pin: "",
         password: "",
         confirm_password: "",
     });
@@ -39,11 +40,11 @@ function Register() {
     const [idFrontFile, setIdFrontFile] = useState(null);
     const [idBackFile, setIdBackFile] = useState(null);
     const [selfieFile, setSelfieFile] = useState(null);
-    const [kraPinFile, setKraPinFile] = useState(null);
     const [businessCertFile, setBusinessCertFile] = useState(null);
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     const [passwordChecks, setPasswordChecks] = useState({
         length: false,
         uppercase: false,
@@ -52,24 +53,51 @@ function Register() {
         special: false,
     });
 
+    const isLandlordOrAgent =
+        formData.role === "LANDLORD" || formData.role === "AGENT";
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData({
-            ...formData,
-            [name]: type === "checkbox" ? checked : value,
-        });
-        if (name === "password") setPasswordChecks(validatePassword(value));
+
+        let newValue = type === "checkbox" ? checked : value;
+
+        // Keep KRA PIN uppercase
+        if (name === "kra_pin") {
+            newValue = value.toUpperCase();
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            [name]: newValue,
+        }));
+
+        if (name === "password") {
+            setPasswordChecks(validatePassword(value));
+        }
     };
 
     const handleFileChange = (e) => {
         const { name, files } = e.target;
+
         if (!files || files.length === 0) return;
+
         const file = files[0];
-        if (name === "id_front") setIdFrontFile(file);
-        if (name === "id_back") setIdBackFile(file);
-        if (name === "selfie") setSelfieFile(file);
-        if (name === "kra_pin") setKraPinFile(file);
-        if (name === "business_certificate") setBusinessCertFile(file);
+
+        if (name === "id_front") {
+            setIdFrontFile(file);
+        }
+
+        if (name === "id_back") {
+            setIdBackFile(file);
+        }
+
+        if (name === "selfie") {
+            setSelfieFile(file);
+        }
+
+        if (name === "business_certificate") {
+            setBusinessCertFile(file);
+        }
     };
 
     const validatePassword = (pw) => ({
@@ -80,213 +108,631 @@ function Register() {
         special: /[!@#$%^&*(),.?"':{}|<>]/.test(pw),
     });
 
+    const validateKraPin = (pin) => {
+        return /^[AP]\d{9}[A-Z]$/.test(pin);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         const checks = validatePassword(formData.password);
+
         if (!Object.values(checks).every(Boolean)) {
             setPasswordChecks(checks);
             toast.error("Password does not meet requirements.");
             return;
         }
+
         if (formData.password !== formData.confirm_password) {
             toast.error("Passwords do not match.");
             return;
         }
 
+        // KRA validation for landlords and agents
+        if (isLandlordOrAgent) {
+            if (!formData.kra_pin) {
+                toast.error("KRA PIN is required for landlords and agents.");
+                return;
+            }
+
+            if (!validateKraPin(formData.kra_pin)) {
+                toast.error(
+                    "Enter a valid KRA PIN format, e.g. A123456789B."
+                );
+                return;
+            }
+        }
+
         try {
             let payload;
-            const hasFiles = idFrontFile || idBackFile || selfieFile || kraPinFile || businessCertFile;
+
+            const hasFiles =
+                idFrontFile ||
+                idBackFile ||
+                selfieFile ||
+                businessCertFile;
+
             if (hasFiles) {
                 payload = new FormData();
-                Object.entries(formData).forEach(([k, v]) => {
-                    if (v !== undefined && v !== null) {
-                        if (typeof v === "boolean") payload.append(k, v ? "true" : "false");
-                        else payload.append(k, v);
+
+                Object.entries(formData).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null) {
+                        if (typeof value === "boolean") {
+                            payload.append(
+                                key,
+                                value ? "true" : "false"
+                            );
+                        } else {
+                            payload.append(key, value);
+                        }
                     }
                 });
-                if (idFrontFile) payload.append("id_front", idFrontFile);
-                if (idBackFile) payload.append("id_back", idBackFile);
-                if (selfieFile) payload.append("selfie", selfieFile);
-                if (kraPinFile) payload.append("kra_pin", kraPinFile);
-                if (businessCertFile) payload.append("business_certificate", businessCertFile);
+
+                if (idFrontFile) {
+                    payload.append("id_front", idFrontFile);
+                }
+
+                if (idBackFile) {
+                    payload.append("id_back", idBackFile);
+                }
+
+                if (selfieFile) {
+                    payload.append("selfie", selfieFile);
+                }
+
+                if (businessCertFile) {
+                    payload.append(
+                        "business_certificate",
+                        businessCertFile
+                    );
+                }
             } else {
                 payload = formData;
             }
 
-            await authService.register(payload);
-            toast.success("Account created successfully");
+            const response = await authService.register(payload);
 
-            if (formData.role === "LANDLORD" || formData.role === "AGENT") {
-                try {
-                    const loginResp = await authService.login({ email: formData.email, password: formData.password });
-                    const loggedInUser = loginResp?.data?.user;
-                    if (loggedInUser) setUser(loggedInUser);
-                    navigate("/dashboard");
-                } catch (loginErr) {
-                    navigate("/verify-phone", { state: { phone: formData.phone } });
-                }
+            toast.success("Account created successfully.");
+
+            /*
+             * IMPORTANT:
+             *
+             * We no longer automatically log in landlords/agents.
+             *
+             * Their KRA/account verification may require manual review.
+             */
+
+            if (isLandlordOrAgent) {
+                navigate("/verify-phone", {
+                    state: {
+                        phone: formData.phone,
+                        registration: true,
+                        verificationRequired: true,
+                        kraVerification: true,
+                    },
+                });
             } else {
-                navigate("/verify-phone", { state: { phone: formData.phone } });
+                navigate("/verify-phone", {
+                    state: {
+                        phone: formData.phone,
+                    },
+                });
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || "Registration failed");
+            console.error("Registration error:", err);
+
+            const data = err.response?.data;
+
+            let message = "Registration failed.";
+
+            if (data?.detail) {
+                message = data.detail;
+            } else if (data?.message) {
+                message = data.message;
+            } else if (typeof data === "object") {
+                const firstError = Object.values(data)[0];
+
+                if (Array.isArray(firstError)) {
+                    message = firstError[0];
+                } else if (typeof firstError === "string") {
+                    message = firstError;
+                }
+            }
+
+            toast.error(message);
         }
     };
 
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <div className="auth-logo">🏠 HomeLink</div>
-                <h2 className="auth-title">Create Account</h2>
-                <p className="auth-subtitle">Join HomeLink Kenya today</p>
+
+                <div className="auth-logo">
+                    🏠 HomeLink
+                </div>
+
+                <h2 className="auth-title">
+                    Create Account
+                </h2>
+
+                <p className="auth-subtitle">
+                    Join HomeLink Kenya today
+                </p>
 
                 <form onSubmit={handleSubmit}>
+
+                    {/* ROLE */}
                     <div className="mb-3">
-                        <select className="form-select" name="role" onChange={handleChange} value={formData.role}>
-                            <option value="TENANT">Tenant</option>
-                            <option value="LANDLORD">Landlord</option>
-                            <option value="AGENT">Agent</option>
+                        <select
+                            className="form-select"
+                            name="role"
+                            onChange={handleChange}
+                            value={formData.role}
+                        >
+                            <option value="TENANT">
+                                Tenant
+                            </option>
+
+                            <option value="LANDLORD">
+                                Landlord
+                            </option>
+
+                            <option value="AGENT">
+                                Agent
+                            </option>
                         </select>
                     </div>
 
+                    {/* NAMES */}
                     <div className="row">
                         <div className="col-md-6 mb-3">
-                            <input type="text" className="form-control" placeholder="First Name" name="first_name" onChange={handleChange} required />
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="First Name"
+                                name="first_name"
+                                value={formData.first_name}
+                                onChange={handleChange}
+                                required
+                            />
                         </div>
+
                         <div className="col-md-6 mb-3">
-                            <input type="text" className="form-control" placeholder="Last Name" name="last_name" onChange={handleChange} required />
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Last Name"
+                                name="last_name"
+                                value={formData.last_name}
+                                onChange={handleChange}
+                                required
+                            />
                         </div>
                     </div>
 
+                    {/* DOB / GENDER */}
                     <div className="row">
                         <div className="col-md-6 mb-3">
-                            <input type="date" className="form-control" placeholder="Date of Birth" name="dob" onChange={handleChange} />
+                            <input
+                                type="date"
+                                className="form-control"
+                                name="dob"
+                                value={formData.dob}
+                                onChange={handleChange}
+                            />
                         </div>
+
                         <div className="col-md-6 mb-3">
-                            <select className="form-select" name="gender" onChange={handleChange}>
-                                <option value="">Select Gender</option>
-                                <option value="MALE">Male</option>
-                                <option value="FEMALE">Female</option>
-                                <option value="OTHER">Other</option>
+                            <select
+                                className="form-select"
+                                name="gender"
+                                value={formData.gender}
+                                onChange={handleChange}
+                            >
+                                <option value="">
+                                    Select Gender
+                                </option>
+
+                                <option value="MALE">
+                                    Male
+                                </option>
+
+                                <option value="FEMALE">
+                                    Female
+                                </option>
+
+                                <option value="OTHER">
+                                    Other
+                                </option>
                             </select>
                         </div>
                     </div>
 
+                    {/* USERNAME */}
                     <div className="mb-3">
-                        <input type="text" className="form-control" placeholder="Username" name="username" onChange={handleChange} required />
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Username"
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            required
+                        />
                     </div>
 
+                    {/* EMAIL */}
                     <div className="mb-3">
-                        <input type="email" className="form-control" placeholder="Email Address" name="email" onChange={handleChange} required />
+                        <input
+                            type="email"
+                            className="form-control"
+                            placeholder="Email Address"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                        />
                     </div>
 
+                    {/* PHONE */}
                     <div className="mb-3">
-                        <input type="text" className="form-control" placeholder="Phone Number" name="phone" onChange={handleChange} />
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Phone Number"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                        />
                     </div>
 
+                    {/* ALTERNATIVE EMAIL */}
                     <div className="mb-3">
-                        <input type="email" className="form-control" placeholder="Alternative Email (optional)" name="alternative_email" onChange={handleChange} />
+                        <input
+                            type="email"
+                            className="form-control"
+                            placeholder="Alternative Email (optional)"
+                            name="alternative_email"
+                            value={formData.alternative_email}
+                            onChange={handleChange}
+                        />
                     </div>
 
+                    {/* ADDRESS */}
                     <div className="mb-3">
-                        <input type="text" className="form-control" placeholder="Address (Permanent)" name="address" onChange={handleChange} />
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Address (Permanent)"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                        />
                     </div>
 
+                    {/* ID NUMBER */}
                     <div className="mb-3">
-                        <input type="text" className="form-control" placeholder="ID Number (national ID)" name="id_number" onChange={handleChange} required={formData.role === 'LANDLORD' || formData.role === 'AGENT'} />
-                        {(formData.role === 'LANDLORD' || formData.role === 'TENANT' || formData.role === 'AGENT') && (<small className="text-danger">Required for landlords and agents</small>)}
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="ID Number (national ID)"
+                            name="id_number"
+                            value={formData.id_number}
+                            onChange={handleChange}
+                            required={isLandlordOrAgent}
+                        />
+
+                        {isLandlordOrAgent && (
+                            <small className="text-danger">
+                                Required for landlords and agents
+                            </small>
+                        )}
                     </div>
 
-                    {formData.role === 'LANDLORD' && (
+                    {/* LANDLORD DOCUMENTS */}
+                    {formData.role === "LANDLORD" && (
                         <>
                             <div className="mb-3">
-                                <label>ID Front (image)</label>
-                                <input type="file" name="id_front" accept="image/*" className="form-control" onChange={handleFileChange} />
+                                <label>
+                                    ID Front (image)
+                                </label>
+
+                                <input
+                                    type="file"
+                                    name="id_front"
+                                    accept="image/*"
+                                    className="form-control"
+                                    onChange={handleFileChange}
+                                />
                             </div>
+
                             <div className="mb-3">
-                                <label>ID Back (image)</label>
-                                <input type="file" name="id_back" accept="image/*" className="form-control" onChange={handleFileChange} />
+                                <label>
+                                    ID Back (image)
+                                </label>
+
+                                <input
+                                    type="file"
+                                    name="id_back"
+                                    accept="image/*"
+                                    className="form-control"
+                                    onChange={handleFileChange}
+                                />
                             </div>
+
                             <div className="mb-3">
-                                <label>Passport / Selfie (image)</label>
-                                <input type="file" name="selfie" accept="image/*" className="form-control" onChange={handleFileChange} />
-                            </div>
-                            <div className="mb-3">
-                                <label>KRA PIN (file)</label>
-                                <input type="file" name="kra_pin" accept="application/pdf,image/*" className="form-control" onChange={handleFileChange} />
+                                <label>
+                                    Passport / Selfie (image)
+                                </label>
+
+                                <input
+                                    type="file"
+                                    name="selfie"
+                                    accept="image/*"
+                                    className="form-control"
+                                    onChange={handleFileChange}
+                                />
                             </div>
                         </>
                     )}
 
-                    {formData.role === 'AGENT' && (
-                        <>
-                            <div className="mb-3">
-                                <label>Business Registration Certificate (file)</label>
-                                <input type="file" name="business_certificate" accept="application/pdf,image/*" className="form-control" onChange={handleFileChange} />
-                            </div>
-                            <div className="mb-3">
-                                <label>KRA PIN Certificate(file)</label>
-                                <input type="file" name="kra_pin" accept="application/pdf,image/*" className="form-control" onChange={handleFileChange} />
-                            </div>
-                        </>
+                    {/* AGENT DOCUMENTS */}
+                    {formData.role === "AGENT" && (
+                        <div className="mb-3">
+                            <label>
+                                Business Registration Certificate
+                            </label>
+
+                            <input
+                                type="file"
+                                name="business_certificate"
+                                accept="application/pdf,image/*"
+                                className="form-control"
+                                onChange={handleFileChange}
+                            />
+                        </div>
                     )}
 
+                    {/* KRA PIN */}
+                    {isLandlordOrAgent && (
+                        <div className="mb-3">
+                            <label className="form-label">
+                                KRA PIN
+                            </label>
+
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="e.g. A123456789B"
+                                name="kra_pin"
+                                value={formData.kra_pin}
+                                onChange={handleChange}
+                                maxLength={11}
+                                required
+                                autoComplete="off"
+                            />
+
+                            <small className="text-muted">
+                                Your KRA PIN will be checked during
+                                verification. If automatic verification
+                                cannot confirm your tax registration,
+                                your account will be sent for manual review.
+                            </small>
+                        </div>
+                    )}
+
+                    {/* OCCUPATION */}
                     <div className="mb-3">
-                        <input type="text" className="form-control" placeholder="Occupation/Profession" name="occupation/Profession" onChange={handleChange} />
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Occupation/Profession"
+                            name="occupation"
+                            value={formData.occupation}
+                            onChange={handleChange}
+                        />
                     </div>
 
+                    {/* ALTERNATE PHONE */}
                     <div className="mb-3">
-                        <input type="text" className="form-control" placeholder="Alternate Phone" name="alternate_phone" onChange={handleChange} />
-                    </div>
-                    <div className="mb-3">
-                        <input type="text" className="form-control" placeholder="Referral Source (optional)" name="referral_source" onChange={handleChange} />
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Alternate Phone"
+                            name="alternate_phone"
+                            value={formData.alternate_phone}
+                            onChange={handleChange}
+                        />
                     </div>
 
+                    {/* REFERRAL */}
+                    <div className="mb-3">
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Referral Source (optional)"
+                            name="referral_source"
+                            value={formData.referral_source}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    {/* LANGUAGE */}
                     <div className="row">
                         <div className="col-md-6 mb-3">
-                            <select className="form-select" name="language" onChange={handleChange} value={formData.language}>
-                                <option value="en">English</option>
-                                <option value="sw">Swahili</option>
+                            <select
+                                className="form-select"
+                                name="language"
+                                onChange={handleChange}
+                                value={formData.language}
+                            >
+                                <option value="en">
+                                    English
+                                </option>
+
+                                <option value="sw">
+                                    Swahili
+                                </option>
                             </select>
                         </div>
                     </div>
 
+                    {/* MPESA */}
                     <div className="mb-3">
-                        <input type="text" className="form-control" placeholder="Payment Details (M-Pesa Number)" name="mpesa_number" onChange={handleChange} required={formData.role === 'LANDLORD'} />
-                        {formData.role === 'LANDLORD' || formData.role === 'AGENT' || formData.role === 'TENANT' ? (<small className="text-danger">Required for Users</small>) : null}
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Payment Details (M-Pesa Number)"
+                            name="mpesa_number"
+                            value={formData.mpesa_number}
+                            onChange={handleChange}
+                            required={formData.role === "LANDLORD"}
+                        />
+
+                        <small className="text-muted">
+                            Required for landlords.
+                        </small>
                     </div>
 
+                    {/* MARKETING */}
                     <div className="form-check mb-3">
-                        <input className="form-check-input" type="checkbox" name="marketing_consent" checked={formData.marketing_consent} onChange={handleChange} />
-                        <label className="form-check-label">I agree to receive marketing communications (optional)</label>
+                        <input
+                            className="form-check-input"
+                            type="checkbox"
+                            name="marketing_consent"
+                            checked={formData.marketing_consent}
+                            onChange={handleChange}
+                        />
+
+                        <label className="form-check-label">
+                            I agree to receive marketing communications
+                            (optional)
+                        </label>
                     </div>
 
+                    {/* PASSWORD */}
                     <div className="mb-3 position-relative">
-                        <input type={showPassword ? "text" : "password"} className="form-control" placeholder="Password" name="password" onChange={handleChange} required />
-                        <button type="button" className="btn btn-sm btn-outline-secondary password-toggle" onClick={() => setShowPassword(s => !s)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? "Hide" : "Show"}</button>
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            className="form-control"
+                            placeholder="Password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            required
+                        />
+
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary password-toggle"
+                            onClick={() =>
+                                setShowPassword((s) => !s)
+                            }
+                        >
+                            {showPassword ? "Hide" : "Show"}
+                        </button>
                     </div>
 
+                    {/* CONFIRM PASSWORD */}
                     <div className="mb-4 position-relative">
-                        <input type={showConfirmPassword ? "text" : "password"} className="form-control" placeholder="Confirm Password" name="confirm_password" onChange={handleChange} required />
-                        <button type="button" className="btn btn-sm btn-outline-secondary password-toggle" onClick={() => setShowConfirmPassword(s => !s)} aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>{showConfirmPassword ? "Hide" : "Show"}</button>
+                        <input
+                            type={
+                                showConfirmPassword
+                                    ? "text"
+                                    : "password"
+                            }
+                            className="form-control"
+                            placeholder="Confirm Password"
+                            name="confirm_password"
+                            value={formData.confirm_password}
+                            onChange={handleChange}
+                            required
+                        />
+
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary password-toggle"
+                            onClick={() =>
+                                setShowConfirmPassword((s) => !s)
+                            }
+                        >
+                            {showConfirmPassword ? "Hide" : "Show"}
+                        </button>
                     </div>
 
+                    {/* PASSWORD REQUIREMENTS */}
                     <div className="mb-3 password-requirements">
-                        <small>Password must have:</small>
+                        <small>
+                            Password must have:
+                        </small>
+
                         <ul>
-                            <li className={passwordChecks.length ? 'pass' : 'fail'}>At least 8 characters</li>
-                            <li className={passwordChecks.uppercase ? 'pass' : 'fail'}>An uppercase letter (A-Z)</li>
-                            <li className={passwordChecks.lowercase ? 'pass' : 'fail'}>A lowercase letter (a-z)</li>
-                            <li className={passwordChecks.number ? 'pass' : 'fail'}>A number (0-9)</li>
-                            <li className={passwordChecks.special ? 'pass' : 'fail'}>A special character (e.g. !@#$%)</li>
+                            <li
+                                className={
+                                    passwordChecks.length
+                                        ? "pass"
+                                        : "fail"
+                                }
+                            >
+                                At least 8 characters
+                            </li>
+
+                            <li
+                                className={
+                                    passwordChecks.uppercase
+                                        ? "pass"
+                                        : "fail"
+                                }
+                            >
+                                An uppercase letter (A-Z)
+                            </li>
+
+                            <li
+                                className={
+                                    passwordChecks.lowercase
+                                        ? "pass"
+                                        : "fail"
+                                }
+                            >
+                                A lowercase letter (a-z)
+                            </li>
+
+                            <li
+                                className={
+                                    passwordChecks.number
+                                        ? "pass"
+                                        : "fail"
+                                }
+                            >
+                                A number (0-9)
+                            </li>
+
+                            <li
+                                className={
+                                    passwordChecks.special
+                                        ? "pass"
+                                        : "fail"
+                                }
+                            >
+                                A special character
+                            </li>
                         </ul>
                     </div>
 
-                    <button className="btn btn-primary btn-auth">Create Account</button>
+                    <button
+                        type="submit"
+                        className="btn btn-primary btn-auth"
+                    >
+                        Create Account
+                    </button>
                 </form>
 
-                <div className="auth-footer">Already have an account? <Link to="/login">Login</Link></div>
+                <div className="auth-footer">
+                    Already have an account?{" "}
+                    <Link to="/login">
+                        Login
+                    </Link>
+                </div>
             </div>
         </div>
     );

@@ -20,6 +20,9 @@ from accounts.models import (
     EmailVerificationToken,
     PhoneOTP,
 )
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.response import Response
 
 from common.utils import api_response
 from accounts.services.verification import create_phone_otp
@@ -47,6 +50,8 @@ from accounts.services.verification import (
 )
 from rest_framework.permissions import IsAdminUser
 
+from accounts.services.kra import KRAService
+
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
     parser_classes = [MultiPartParser, FormParser]
@@ -57,54 +62,84 @@ class RegisterAPIView(APIView):
             data=request.data
         )
 
-        # Ensure required files are present for LANDLORD/AGENT
         role = request.data.get("role")
+        kra_pin = request.data.get("kra_pin")
+
         missing_files = []
 
+        # ---------------------------------------------------------
+        # LANDLORD / AGENT REQUIRED INFORMATION
+        # ---------------------------------------------------------
         if role in ("LANDLORD", "AGENT"):
-            if role == "LANDLORD":
-                required_files = ["kra_pin", "id_front", "id_back", "selfie"]
-            else:
-                required_files = ["business_certificate", "kra_pin"]
 
-            for f in required_files:
-                if f not in request.FILES:
-                    missing_files.append(f)
+            if not kra_pin:
+                missing_files.append("kra_pin")
+
+            if role == "LANDLORD":
+                required_files = [
+                    "id_front",
+                    "id_back",
+                    "selfie",
+                ]
+            else:
+                required_files = [
+                    "business_certificate",
+                ]
+
+            for file_field in required_files:
+                if file_field not in request.FILES:
+                    missing_files.append(file_field)
 
             if missing_files:
                 return api_response(
                     False,
-                    "Missing required files for registration.",
-                    {"missing_files": missing_files},
+                    "Missing required registration information.",
+                    {
+                        "missing_fields": missing_files
+                    },
                     400,
                 )
 
+        # ---------------------------------------------------------
+        # SERIALIZER VALIDATION
+        # ---------------------------------------------------------
         if not serializer.is_valid():
-            # Log payload and validation errors for debugging
+
+            # DO NOT log request.data because it may contain
+            # sensitive information such as the KRA PIN.
             try:
                 logger.warning(
-                    "Register payload invalid: %s errors: %s",
-                    request.data,
+                    "Register payload invalid. Errors: %s",
                     serializer.errors,
                 )
             except Exception:
-                logger.exception("Failed to log registration payload/errors")
+                logger.exception(
+                    "Failed to log registration validation errors"
+                )
 
-            # Derive a human-friendly message from serializer errors
             def _first_error_message(errors):
+
                 if isinstance(errors, dict):
-                    for v in errors.values():
-                        if isinstance(v, (list, tuple)) and v:
-                            return str(v[0])
-                        if isinstance(v, dict):
-                            m = _first_error_message(v)
-                            if m:
-                                return m
+
+                    for value in errors.values():
+
+                        if isinstance(value, (list, tuple)) and value:
+                            return str(value[0])
+
+                        if isinstance(value, dict):
+                            message = _first_error_message(value)
+
+                            if message:
+                                return message
+
                 if isinstance(errors, (list, tuple)) and errors:
                     return str(errors[0])
+
                 return "Registration failed."
 
-            message = _first_error_message(serializer.errors)
+            message = _first_error_message(
+                serializer.errors
+            )
 
             return api_response(
                 False,
@@ -113,44 +148,120 @@ class RegisterAPIView(APIView):
                 400,
             )
 
+        # ---------------------------------------------------------
+        # CREATE USER
+        # ---------------------------------------------------------
         try:
 
             user = serializer.save()
 
-            # If role is LANDLORD or AGENT and required files provided, create verification and auto-approve
+            # -----------------------------------------------------
+            # LANDLORD / AGENT VERIFICATION
+            # -----------------------------------------------------
             if user.role in ("LANDLORD", "AGENT"):
-                verification_kwargs = {}
 
+                # ---------------------------------------------
+                # Run KRA verification
+                # ---------------------------------------------
+                kra_result = KRAService.verify_pin(
+                    kra_pin
+                )
+
+                verification_kwargs = {
+                    "user": user,
+                    "kra_pin": kra_pin,
+                }
+
+                # ---------------------------------------------
+                # Uploaded verification documents
+                # ---------------------------------------------
                 if "id_front" in request.FILES:
-                    verification_kwargs["id_front"] = request.FILES.get("id_front")
-                if "id_back" in request.FILES:
-                    verification_kwargs["id_back"] = request.FILES.get("id_back")
-                if "selfie" in request.FILES:
-                    verification_kwargs["selfie"] = request.FILES.get("selfie")
-                if "kra_pin" in request.FILES:
-                    verification_kwargs["kra_pin"] = request.FILES.get("kra_pin")
-                if "business_certificate" in request.FILES:
-                    verification_kwargs["business_certificate"] = request.FILES.get("business_certificate")
-
-                if verification_kwargs:
-                    verification = UserVerification.objects.create(
-                        user=user,
-                        **verification_kwargs,
+                    verification_kwargs["id_front"] = (
+                        request.FILES.get("id_front")
                     )
-                    verification.status = UserVerification.Status.APPROVED
-                    verification.save(update_fields=["status"])
 
-                    user.is_verified = True
-                    user.save(update_fields=["is_verified"]) 
+                if "id_back" in request.FILES:
+                    verification_kwargs["id_back"] = (
+                        request.FILES.get("id_back")
+                    )
 
-            SubscriptionService.assign_free_plan(user)
+                if "selfie" in request.FILES:
+                    verification_kwargs["selfie"] = (
+                        request.FILES.get("selfie")
+                    )
 
-            # Email verification
-            create_email_verification(user)
+                if "business_certificate" in request.FILES:
+                    verification_kwargs["business_certificate"] = (
+                        request.FILES.get(
+                            "business_certificate"
+                        )
+                    )
 
-            # Generate phone OTP
-            phone_otp = create_phone_otp(user)
+                # ---------------------------------------------
+                # Create verification record
+                # ---------------------------------------------
+                verification = UserVerification.objects.create(
+                    **verification_kwargs,
+                    status=UserVerification.Status.UNDER_REVIEW,
+                    kra_verification_status=(
+                        kra_result.verification_status
+                    ),
+                    kra_obligation_status=(
+                        kra_result.obligation_status
+                    ),
+                    kra_verification_message=(
+                        kra_result.message
+                    ),
+                )
 
+                # ---------------------------------------------
+                # KRA verified timestamp
+                # ---------------------------------------------
+                if kra_result.verification_status == "VERIFIED":
+
+                    verification.kra_verified_at = timezone.now()
+
+                    verification.save(
+                        update_fields=[
+                            "kra_verified_at"
+                        ]
+                    )
+
+                # ---------------------------------------------
+                # Account is NOT automatically approved
+                # ---------------------------------------------
+                user.is_verified = False
+
+                user.save(
+                    update_fields=[
+                        "is_verified"
+                    ]
+                )
+
+            # -----------------------------------------------------
+            # FREE SUBSCRIPTION
+            # -----------------------------------------------------
+            SubscriptionService.assign_free_plan(
+                user
+            )
+
+            # -----------------------------------------------------
+            # EMAIL VERIFICATION
+            # -----------------------------------------------------
+            create_email_verification(
+                user
+            )
+
+            # -----------------------------------------------------
+            # PHONE OTP
+            # -----------------------------------------------------
+            phone_otp = create_phone_otp(
+                user
+            )
+
+            # -----------------------------------------------------
+            # RESPONSE
+            # -----------------------------------------------------
             return api_response(
                 True,
                 "Account created. Check your email and phone for verification.",
@@ -166,7 +277,37 @@ class RegisterAPIView(APIView):
                         "email_verified": user.email_verified,
                         "phone_verified": user.phone_verified,
                         "is_verified": user.is_verified,
-                    }
+                    },
+
+                    # Useful for frontend
+                    # and admin review.
+                    "verification": {
+                        "kra_verification_status": (
+                            kra_result.verification_status
+                            if user.role in (
+                                "LANDLORD",
+                                "AGENT",
+                            )
+                            else "NOT_CHECKED"
+                        ),
+                        "kra_obligation_status": (
+                            kra_result.obligation_status
+                            if user.role in (
+                                "LANDLORD",
+                                "AGENT",
+                            )
+                            else "NOT_CHECKED"
+                        ),
+                        "manual_review_required": (
+                            kra_result.verification_status
+                            == "MANUAL_REVIEW"
+                            if user.role in (
+                                "LANDLORD",
+                                "AGENT",
+                            )
+                            else False
+                        ),
+                    },
                 },
                 201,
             )
@@ -183,6 +324,7 @@ class RegisterAPIView(APIView):
                 },
                 400,
             )
+        
 class AgentViewSet(viewsets.ReadOnlyModelViewSet):
 
     permission_classes = [AllowAny]
@@ -885,7 +1027,7 @@ class UserVerificationAPIView(APIView):
 
             user_role = request.user.role
 
-            if user_role == User.Role.TENANT:
+            if user_role == User.Roles.TENANT:
                 if not request.FILES.get("kra_pin"):
                     return api_response(
                         False,
@@ -897,8 +1039,8 @@ class UserVerificationAPIView(APIView):
                 if request.FILES.get("business_certificate"):
                     serializer.validated_data.pop("business_certificate", None)
 
-            elif user_role in [User.Role.LANDLORD, User.Role.AGENT]:
-                if not request.FILES.get("kra_pin"):
+            elif user_role in [User.Roles.LANDLORD, User.Roles.AGENT]:
+                if not request.data.get("kra_pin"):
                     return api_response(
                         False,
                         "KRA PIN is required for landlords and agents.",
@@ -906,7 +1048,7 @@ class UserVerificationAPIView(APIView):
                         400,
                     )
 
-                if user_role == User.Role.AGENT and not request.FILES.get("business_certificate"):
+                if user_role == User.Roles.AGENT and not request.FILES.get("business_certificate"):
                     return api_response(
                         False,
                         "Business certificate is required for agents.",
@@ -1008,4 +1150,71 @@ class ReviewVerificationAPIView(APIView):
             True,
             "User rejected.",
             None,
+        )
+
+class KRAVerificationAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        if user.role not in [
+            User.Roles.LANDLORD,
+            User.Roles.AGENT,
+        ]:
+            return Response(
+                {
+                    "detail": "KRA verification is only required for landlords and agents."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        kra_pin = request.data.get("kra_pin")
+
+        if not kra_pin:
+            return Response(
+                {"detail": "KRA PIN is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        verification, _ = UserVerification.objects.get_or_create(
+            user=user
+        )
+
+        result = KRAService.verify_pin(kra_pin)
+
+        verification.kra_pin = kra_pin
+        verification.kra_verification_status = result.verification_status
+        verification.kra_obligation_status = result.obligation_status
+        verification.kra_verification_message = result.message
+
+        if hasattr(verification, "kra_obligations"):
+            verification.kra_obligations = result.obligations
+
+        if result.verification_status == "VERIFIED":
+            verification.kra_verified_at = timezone.now()
+        else:
+            verification.kra_verified_at = None
+
+        verification.save()
+
+        # Never automatically approve the HomeLink account here.
+        if result.verification_status == "MANUAL_REVIEW":
+            verification.status = UserVerification.Status.UNDER_REVIEW
+            verification.save(update_fields=["status"])
+
+            user.is_verified = False
+            user.save(update_fields=["is_verified"])
+
+        return Response(
+            {
+                "success": True,
+                "kra_verification_status": result.verification_status,
+                "kra_obligation_status": result.obligation_status,
+                "message": result.message,
+                "manual_review_required": (
+                    result.verification_status == "MANUAL_REVIEW"
+                ),
+            },
+            status=status.HTTP_200_OK,
         )
