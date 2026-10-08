@@ -41,6 +41,13 @@ function Sidebar() {
         },
 
         {
+            name: "Lease Agreements",
+            path: "/dashboard/leases",
+            icon: <FaFileContract />,
+            roles: ["LANDLORD"],
+        },
+
+        {
             name: "My Rentals",
             path: "/tenant/my-rentals",
             icon: <FaFileContract />,
@@ -82,6 +89,12 @@ function Sidebar() {
             name: "Settings",
             path: "/dashboard/settings",
             icon: <FaCog />,
+        },
+
+        {
+            name: "Become a Provider",
+            path: "/services/provider/register",
+            icon: <FaPlusCircle />,
         },
     ];
 

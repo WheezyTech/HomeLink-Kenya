@@ -13,7 +13,8 @@ api.interceptors.request.use(
     (config) => {
 
         const token =
-            localStorage.getItem("access");
+            localStorage.getItem("access") ||
+            localStorage.getItem("access_token");
 
         if (token) {
 
@@ -47,7 +48,9 @@ api.interceptors.response.use(
             );
 
             localStorage.removeItem("access");
+            localStorage.removeItem("access_token");
             localStorage.removeItem("refresh");
+            localStorage.removeItem("refresh_token");
             localStorage.removeItem("user");
 
             // Don't force redirect while already on login

@@ -29,14 +29,27 @@ const login = async (credentials) => {
 
     const { tokens, user } = response.data.data;
 
+    const accessToken = tokens.access;
+    const refreshToken = tokens.refresh;
+
     localStorage.setItem(
         "access",
-        tokens.access
+        accessToken
+    );
+
+    localStorage.setItem(
+        "access_token",
+        accessToken
     );
 
     localStorage.setItem(
         "refresh",
-        tokens.refresh
+        refreshToken
+    );
+
+    localStorage.setItem(
+        "refresh_token",
+        refreshToken
     );
 
     localStorage.setItem(
@@ -52,7 +65,9 @@ const login = async (credentials) => {
 const logout = () => {
 
     localStorage.removeItem("access");
+    localStorage.removeItem("access_token");
     localStorage.removeItem("refresh");
+    localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
 
 };

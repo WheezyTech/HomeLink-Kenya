@@ -68,6 +68,16 @@ function Footer() {
                     </div>
 
                     <div className="col-lg-2 col-md-6">
+                        <h5 className="fw-semibold mb-3">Services</h5>
+                        <ul className="list-unstyled">
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/services">Marketplace</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/services/requests">My Requests</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/services/providers">Providers</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/services/provider/dashboard">Provider Dashboard</Link></li>
+                        </ul>
+                    </div>
+
+                    <div className="col-lg-2 col-md-6">
                         <h5 className="fw-semibold mb-3">Support</h5>
                         <ul className="list-unstyled">
                             <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">FAQ</Link></li>

@@ -60,6 +60,7 @@ class ServiceProvider(models.Model):
         PENDING = "PENDING", "Pending"
         VERIFIED = "VERIFIED", "Verified"
         REJECTED = "REJECTED", "Rejected"
+        SUSPENDED = "SUSPENDED", "Suspended"
 
     id = models.UUIDField(
         primary_key=True,
@@ -79,12 +80,31 @@ class ServiceProvider(models.Model):
         default=ProviderType.INDIVIDUAL,
     )
 
+    primary_category = models.ForeignKey(
+        ServiceCategory,
+        on_delete=models.SET_NULL,
+        related_name="primary_providers",
+        null=True,
+        blank=True,
+    )
+
     business_name = models.CharField(
         max_length=200,
     )
 
     description = models.TextField(
         blank=True,
+    )
+
+    qualification = models.TextField(
+        blank=True,
+        help_text="Relevant training, certifications, or professional qualifications.",
+    )
+
+    license_number = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Optional professional or business license number.",
     )
 
     phone = models.CharField(

@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -6,6 +7,7 @@ from .views import (
     ServiceListingViewSet,
     ServiceRequestViewSet,
     ServiceProviderRequestViewSet,
+    ServiceProviderRegistrationAPIView,
 )
 
 
@@ -42,4 +44,11 @@ router.register(
 )
 
 
-urlpatterns = router.urls
+urlpatterns = [
+    path(
+        "providers/register/",
+        ServiceProviderRegistrationAPIView.as_view(),
+        name="service-provider-register",
+    ),
+    *router.urls,
+]

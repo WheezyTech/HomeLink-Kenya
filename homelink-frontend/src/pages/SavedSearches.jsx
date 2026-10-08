@@ -9,7 +9,7 @@ export default function SavedSearches() {
     const [error, setError] = useState("");
 
     const token =
-        localStorage.getItem("access_token");
+        localStorage.getItem("access") || localStorage.getItem("access_token");
 
     const headers = {
         Authorization: `Bearer ${token}`,

@@ -59,6 +59,17 @@ function ServicesMarketplace() {
                 </p>
             </div>
 
+            <div className="alert alert-primary d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <div>
+                    <strong>Offer services on HomeLink?</strong>
+                    <div className="small text-dark">Create your provider account and start receiving customer requests.</div>
+                </div>
+
+                <Link to="/services/provider/register" className="btn btn-primary">
+                    Become a Service Provider
+                </Link>
+            </div>
+
             {categories.length > 0 && (
                 <div className="mb-4">
                     <h5>Popular Categories</h5>

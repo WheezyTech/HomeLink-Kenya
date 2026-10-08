@@ -12,7 +12,7 @@ export default function SaveSearchButton({
     const [message, setMessage] = useState("");
 
     const token =
-        localStorage.getItem("access_token");
+        localStorage.getItem("access") || localStorage.getItem("access_token");
 
     async function saveSearch() {
         if (!name.trim()) {

@@ -3,7 +3,11 @@ import axios from "axios";
 const API_URL = "http://127.0.0.1:8000/api/services";
 
 const getAuthConfig = () => {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access") || localStorage.getItem("access_token");
+
+    if (!token) {
+        throw new Error("User is not authenticated.");
+    }
 
     return {
         headers: {

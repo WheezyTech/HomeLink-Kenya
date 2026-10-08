@@ -30,6 +30,7 @@ import EditProperty from "../pages/properties/EditProperty";
 import Verification from "../pages/dashboard/Verification";
 import MyBookings from "../pages/dashboard/MyBookings";
 import ManageBookings from "../pages/dashboard/ManageBookings";
+import LandlordLeases from "../pages/dashboard/LandlordLeases";
 import Chat from "../pages/dashboard/Chat";
 import ServicesMarketplace from "../pages/services/ServicesMarketplace";
 import ServiceDetails from "../pages/services/ServiceDetails";
@@ -38,6 +39,7 @@ import ServiceProviderDashboard from "../pages/services/ServiceProviderDashboard
 import ServiceReview from "../pages/services/ServiceReview";
 import ServiceProviderProfile from "../pages/services/ServiceProviderProfile";
 import ProviderDashboard from "../pages/services/ProviderDashboard";
+import RegisterServiceProvider from "../pages/services/RegisterServiceProvider";
 import AddService from "../pages/services/AddService";
 import RequestService from "../pages/services/RequestService";
 import ProviderRequests from "../pages/services/ProviderRequests";
@@ -152,6 +154,15 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute roles={["LANDLORD", "AGENT"]}>
                         <MyProperties />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/dashboard/leases"
+                element={
+                    <ProtectedRoute roles={["LANDLORD"]}>
+                        <LandlordLeases />
                     </ProtectedRoute>
                 }
             />
@@ -325,8 +336,17 @@ function AppRoutes() {
             />
 
             <Route
+                path="/services/provider/register"
+                element={<RegisterServiceProvider />}
+            />
+
+            <Route
                 path="/services/provider/dashboard"
-                element={<ProviderDashboard />}
+                element={
+                    <ProtectedRoute>
+                        <ProviderDashboard />
+                    </ProtectedRoute>
+                }
             />
 
             <Route

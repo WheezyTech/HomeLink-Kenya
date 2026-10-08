@@ -12,7 +12,7 @@ export default function ProviderRequests() {
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(null);
 
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access") || localStorage.getItem("access_token");
 
     const config = {
         headers: {

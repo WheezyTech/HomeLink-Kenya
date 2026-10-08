@@ -20,7 +20,7 @@ export default function AddService() {
         service_area: "",
     });
 
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access") || localStorage.getItem("access_token");
 
     useEffect(() => {
         loadCategories();

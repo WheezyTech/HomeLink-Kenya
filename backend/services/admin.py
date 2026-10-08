@@ -74,9 +74,11 @@ class ServiceProviderAdmin(admin.ModelAdmin):
     list_display = (
         "business_name",
         "provider_type",
+        "primary_category",
         "user",
         "county",
         "town",
+        "license_number",
         "verification_status",
         "rating",
         "completed_jobs",
@@ -85,6 +87,7 @@ class ServiceProviderAdmin(admin.ModelAdmin):
 
     list_filter = (
         "provider_type",
+        "primary_category",
         "verification_status",
         "is_active",
         "county",

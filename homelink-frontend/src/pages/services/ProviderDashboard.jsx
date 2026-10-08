@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const API_URL = "http://127.0.0.1:8000/api";
 
 function getAuthConfig() {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access") || localStorage.getItem("access_token");
+
+    if (!token) {
+        throw new Error("User is not authenticated.");
+    }
 
     return {
         headers: {
@@ -45,38 +50,26 @@ export default function ProviderDashboard() {
                 requestsResponse,
             ] = await Promise.all([
 
-                fetch(
+                axios.get(
                     `${API_URL}/services/providers/me/`,
                     config
                 ),
 
-                fetch(
+                axios.get(
                     `${API_URL}/services/listings/mine/`,
                     config
                 ),
 
-                fetch(
+                axios.get(
                     `${API_URL}/services/provider/requests/`,
                     config
                 ),
             ]);
 
 
-            if (!providerResponse.ok) {
-                throw new Error(
-                    "Failed to load provider profile."
-                );
-            }
-
-
-            const providerData =
-                await providerResponse.json();
-
-            const listingsData =
-                await listingsResponse.json();
-
-            const requestsData =
-                await requestsResponse.json();
+            const providerData = providerResponse.data;
+            const listingsData = listingsResponse.data;
+            const requestsData = requestsResponse.data;
 
 
             setProvider(
@@ -146,6 +139,33 @@ export default function ProviderDashboard() {
 
                 </div>
 
+            </div>
+        );
+    }
+
+    if (provider.verification_status !== "VERIFIED") {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+                <div className="bg-white border rounded-xl p-8 text-center max-w-lg">
+                    <h1 className="text-2xl font-bold">
+                        Your service provider application is under review
+                    </h1>
+
+                    <p className="text-gray-500 mt-3">
+                        Current status: <span className="fw-semibold text-capitalize">{provider.verification_status?.toLowerCase().replace("_", " ") || "Pending"}</span>
+                    </p>
+
+                    <p className="text-gray-600 mt-3">
+                        Once approved by the admin team, you will be able to publish listings and manage service requests.
+                    </p>
+
+                    <button
+                        onClick={() => navigate("/services")}
+                        className="mt-6 bg-secondary text-white px-6 py-3 rounded-lg font-semibold"
+                    >
+                        Browse Services
+                    </button>
+                </div>
             </div>
         );
     }

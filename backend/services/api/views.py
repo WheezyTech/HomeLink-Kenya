@@ -1,9 +1,10 @@
+from django.db import transaction
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -21,6 +22,9 @@ from .serializers import (
     ServiceListingSerializer,
     ServiceRequestSerializer,
 )
+from accounts.api.serializers import RegisterSerializer
+from accounts.services.verification import create_email_verification, create_phone_otp
+from subscriptions.services import SubscriptionService
 
 
 class ServiceCategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -501,7 +505,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     "success": False,
-                    "message": "Only pending requests can be rejected.",
+                    "message": "Only pending requests can be rejected/Avoided.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -684,7 +688,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
 class ServiceProviderRegistrationAPIView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
 
@@ -710,6 +714,9 @@ class ServiceProviderRegistrationAPIView(APIView):
         )
 
     def post(self, request):
+
+        if not request.user.is_authenticated:
+            return self.register_new_provider_account(request)
 
         if ServiceProvider.objects.filter(
             user=request.user
@@ -741,11 +748,85 @@ class ServiceProviderRegistrationAPIView(APIView):
                 "success": True,
                 "message": (
                     "Service provider registration submitted successfully. "
-                    "Your account is awaiting verification."
+                    "Your account is awaiting Approval."
                 ),
                 "provider": ServiceProviderSerializer(
                     provider
                 ).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    @transaction.atomic
+    def register_new_provider_account(self, request):
+        account_field_names = (
+            "first_name",
+            "last_name",
+            "username",
+            "email",
+            "phone",
+            "password",
+            "confirm_password",
+        )
+        account_data = {
+            field_name: request.data.get(field_name)
+            for field_name in account_field_names
+        }
+        account_data["email"] = request.data.get("account_email")
+        account_data["phone"] = request.data.get("account_phone")
+
+        account_serializer = RegisterSerializer(data=account_data)
+        provider_serializer = ServiceProviderRegistrationSerializer(
+            data=request.data,
+        )
+
+        account_is_valid = account_serializer.is_valid()
+        provider_is_valid = provider_serializer.is_valid()
+
+        if not account_is_valid or not provider_is_valid:
+            errors = {}
+            if not account_is_valid:
+                errors.update(account_serializer.errors)
+            if not provider_is_valid:
+                errors.update(provider_serializer.errors)
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "Please correct the highlighted registration details.",
+                    "errors": errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = account_serializer.save()
+        provider = ServiceProvider.objects.create(
+            user=user,
+            **provider_serializer.validated_data,
+        )
+
+        SubscriptionService.assign_free_plan(user)
+        create_email_verification(user)
+        create_phone_otp(user)
+
+        return Response(
+            {
+                "success": True,
+                "message": (
+                    "Account and service provider profile created. "
+                    "Verify your email and phone before logging in. "
+                    "Your provider profile is awaiting approval."
+                ),
+                "user": {
+                    "id": str(user.id),
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "username": user.username,
+                    "email": user.email,
+                    "phone": user.phone,
+                    "role": user.role,
+                },
+                "provider": ServiceProviderSerializer(provider).data,
             },
             status=status.HTTP_201_CREATED,
         )

@@ -62,7 +62,7 @@ export default function SmartPropertyMap({
     const [error, setError] = useState("");
 
     const token =
-        localStorage.getItem("access_token");
+        localStorage.getItem("access") || localStorage.getItem("access_token");
 
     async function loadMapData() {
         try {

@@ -22,7 +22,7 @@ export default function RequestService() {
         customer_phone: "",
     });
 
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access") || localStorage.getItem("access_token");
 
     useEffect(() => {
         loadListing();

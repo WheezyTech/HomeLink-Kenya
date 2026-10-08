@@ -25,14 +25,23 @@ class ServiceCategorySerializer(serializers.ModelSerializer):
 
 class ServiceProviderSerializer(serializers.ModelSerializer):
 
+    primary_category_name = serializers.CharField(
+        source="primary_category.name",
+        read_only=True,
+    )
+
     class Meta:
         model = ServiceProvider
         fields = (
             "id",
             "user",
             "provider_type",
+            "primary_category",
+            "primary_category_name",
             "business_name",
             "description",
+            "qualification",
+            "license_number",
             "phone",
             "email",
             "county",
@@ -253,13 +262,20 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
 
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
+    primary_category = serializers.PrimaryKeyRelatedField(
+        queryset=ServiceCategory.objects.filter(is_active=True),
+    )
+
     class Meta:
         model = ServiceProvider
 
         fields = (
             "provider_type",
+            "primary_category",
             "business_name",
             "description",
+            "qualification",
+            "license_number",
             "phone",
             "email",
             "county",
