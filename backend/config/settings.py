@@ -71,6 +71,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -103,19 +104,45 @@ ASGI_APPLICATION = "config.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DB_ENGINE = config("DB_ENGINE", default="sqlite3")
-DB_NAME = config("DB_NAME", default="db.sqlite3")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-DATABASES = {
-    "default": {
-        "ENGINE": (
-            "django.db.backends.sqlite3"
-            if DB_ENGINE == "sqlite3"
-            else DB_ENGINE
-        ),
-        "NAME": BASE_DIR / DB_NAME,
-    }
-}
+if DATABASE_URL:
+    try:
+        import dj_database_url
+
+        DATABASES = {
+            "default": dj_database_url.parse(
+                DATABASE_URL,
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+    except ImportError:
+        raise RuntimeError(
+            "dj-database-url is required when DATABASE_URL is configured."
+        )
+else:
+    DB_ENGINE = config("DB_ENGINE", default="sqlite3")
+    DB_NAME = config("DB_NAME", default="db.sqlite3")
+
+    if DB_ENGINE == "sqlite3":
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / DB_NAME,
+            }
+        }
+    else:
+        DATABASES = {
+            "default": {
+                "ENGINE": DB_ENGINE,
+                "NAME": config("DB_NAME"),
+                "USER": config("DB_USER", default=""),
+                "PASSWORD": config("DB_PASSWORD", default=""),
+                "HOST": config("DB_HOST", default=""),
+                "PORT": config("DB_PORT", default=""),
+            }
+        }
 
 
 # Password validation
@@ -153,9 +180,28 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = "accounts.User"
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:5173,http://127.0.0.1:5173",
+).split(",")
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="",
+).split(",") if config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="",
+).strip() else []
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
@@ -242,5 +288,23 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+if all(os.getenv(key) for key in (
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+)):
+    STORAGES["default"] = {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    }

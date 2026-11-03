@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import filters, status, viewsets
@@ -382,6 +382,20 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        if (
+            not listing.provider.is_active
+            or listing.provider.verification_status
+            != ServiceProvider.VerificationStatus.VERIFIED
+        ):
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "This service is currently unavailable.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if listing.provider.user == request.user:
 
             return Response(
@@ -654,30 +668,35 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        service_request.status = ServiceRequest.Status.COMPLETED
-        service_request.completed_at = timezone.now()
-
-        service_request.save(
-            update_fields=[
-                "status",
-                "completed_at",
-                "updated_at",
-            ]
+        updated = ServiceRequest.objects.filter(
+            id=service_request.id,
+            status=ServiceRequest.Status.IN_PROGRESS,
+        ).update(
+            status=ServiceRequest.Status.COMPLETED,
+            completed_at=timezone.now(),
         )
 
-        provider = service_request.provider
+        if updated != 1:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only jobs in progress can be completed.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        provider.completed_jobs += 1
-
-        provider.save(
-            update_fields=["completed_jobs"]
+        ServiceProvider.objects.filter(
+            id=service_request.provider_id
+        ).update(
+            completed_jobs=F("completed_jobs") + 1
         )
 
-        service_request.listing.completed_jobs += 1
-
-        service_request.listing.save(
-            update_fields=["completed_jobs"]
-        )
+        if service_request.listing_id:
+            ServiceListing.objects.filter(
+                id=service_request.listing_id
+            ).update(
+                completed_jobs=F("completed_jobs") + 1
+            )
 
         return Response(
             {
@@ -691,6 +710,14 @@ class ServiceProviderRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+
+        if not request.user.is_authenticated:
+            return Response(
+                {
+                    "registered": False,
+                    "message": "You are not registered as a service provider.",
+                }
+            )
 
         try:
             provider = request.user.service_provider

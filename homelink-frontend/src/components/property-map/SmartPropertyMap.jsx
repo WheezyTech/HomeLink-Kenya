@@ -14,8 +14,9 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import decodePolyline from "./decodePolyline";
+import { API_BASE_URL } from "../../config/api";
 
-const API = "http://127.0.0.1:8000/api";
+const API = API_BASE_URL;
 
 const propertyIcon = new L.Icon({
     iconUrl: markerIcon,

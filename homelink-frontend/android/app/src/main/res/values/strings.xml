@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HomeLink Kenya</string>
+    <string name="title_activity_main">HomeLink Kenya</string>
+    <string name="package_name">ke.co.homelink.kenya</string>
+    <string name="custom_url_scheme">ke.co.homelink.kenya</string>
+</resources>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../../config/api";
 
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = API_BASE_URL;
 
 function getAuthConfig() {
     const token = localStorage.getItem("access") || localStorage.getItem("access_token");

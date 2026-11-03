@@ -1,0 +1,8 @@
+{
+  "appId": "ke.co.homelink.kenya",
+  "appName": "HomeLink Kenya",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

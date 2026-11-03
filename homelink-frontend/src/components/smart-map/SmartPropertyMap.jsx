@@ -8,8 +8,9 @@ import {
     useMap,
 } from "react-leaflet";
 import L from "leaflet";
+import { API_BASE_URL } from "../../config/api";
 
-const API = "http://127.0.0.1:8000/api";
+const API = API_BASE_URL;
 
 const categories = [
     { key: "schools", label: "Schools", icon: "🏫" },

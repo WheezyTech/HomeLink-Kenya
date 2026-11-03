@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { FaBell, FaHome } from "react-icons/fa";
 import api from "../../api/axios";
+import { NOTIFICATIONS_SOCKET_URL } from "../../config/api";
 import "../../styles/notification-bell.css";
 
-const WS_URL = "ws://127.0.0.1:8000/ws/notifications/";
+const WS_URL = NOTIFICATIONS_SOCKET_URL;
 
 export default function NotificationBell() {
     const [alerts, setAlerts] = useState([]);

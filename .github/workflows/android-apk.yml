@@ -1,0 +1,94 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: Public HTTPS API URL ending in /api/ (for example, https://api.example.com/api/)
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_BASE_URL: ${{ inputs.api_base_url || vars.API_BASE_URL }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: homelink-frontend/package-lock.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validate API URL
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url || vars.API_BASE_URL }}
+        run: |
+          node --input-type=module -e '
+            const value = process.env.API_BASE_URL;
+            if (!value) throw new Error("Set the public API URL in the workflow input or the API_BASE_URL repository variable.");
+            const url = new URL(value);
+            if (url.protocol !== "https:" || !/\/api\/?$/i.test(url.pathname)) {
+              throw new Error("The API URL must use HTTPS and end in /api/.");
+            }
+          '
+
+      - name: Install Android SDK packages
+        run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install frontend dependencies
+        working-directory: homelink-frontend
+        run: npm ci
+
+      - name: Build web app
+        working-directory: homelink-frontend
+        run: npm run build
+
+      - name: Sync Android project
+        working-directory: homelink-frontend
+        run: npx cap sync android
+
+      - name: Build installable APK
+        working-directory: homelink-frontend/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: homelink-kenya-android-apk
+          path: homelink-frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Name release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        run: cp homelink-frontend/android/app/build/outputs/apk/debug/app-debug.apk HomeLink-Kenya.apk
+
+      - name: Publish APK to GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: HomeLink-Kenya.apk

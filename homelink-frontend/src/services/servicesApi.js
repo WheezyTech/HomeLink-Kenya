@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config/api";
 
-const API_URL = "http://127.0.0.1:8000/api/services";
+const API_URL = `${API_BASE_URL}/services`;
 
 const getAuthConfig = () => {
     const token = localStorage.getItem("access") || localStorage.getItem("access_token");
@@ -165,7 +166,7 @@ export const getServiceProvider = async (id) => {
 
 export const getProviderReviews = async (providerId) => {
     const response = await axios.get(
-        `http://127.0.0.1:8000/api/reviews/service-reviews/?provider=${providerId}`
+        `${API_BASE_URL}/reviews/service-reviews/?provider=${providerId}`
     );
 
     return response.data;
@@ -173,7 +174,7 @@ export const getProviderReviews = async (providerId) => {
 
 export const createServiceReview = async (data) => {
     const response = await axios.post(
-        "http://127.0.0.1:8000/api/reviews/service-reviews/",
+        `${API_BASE_URL}/reviews/service-reviews/`,
         data,
         getAuthConfig()
     );
@@ -184,7 +185,7 @@ export const createServiceReview = async (data) => {
 
 export const getMyServiceReviews = async () => {
     const response = await axios.get(
-        "http://127.0.0.1:8000/api/reviews/service-reviews/",
+        `${API_BASE_URL}/reviews/service-reviews/`,
         getAuthConfig()
     );
 
