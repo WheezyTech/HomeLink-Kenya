@@ -49,10 +49,10 @@ function Footer() {
                     <div className="col-lg-2 col-md-6">
                         <h5 className="fw-semibold mb-3">Company</h5>
                         <ul className="list-unstyled">
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/">About</Link></li>
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">Careers</Link></li>
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">Blog</Link></li>
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">Agents</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/about">About</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/careers">Careers</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/blog">Blog</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/agents-page">Agents</Link></li>
                         </ul>
                     </div>
 
@@ -80,11 +80,11 @@ function Footer() {
                     <div className="col-lg-2 col-md-6">
                         <h5 className="fw-semibold mb-3">Support</h5>
                         <ul className="list-unstyled">
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">FAQ</Link></li>
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">Privacy</Link></li>
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">Terms</Link></li>
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">Contact</Link></li>
-                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/properties">Help Centre</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/faq">FAQ</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/privacy-policy">Privacy</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/terms-and-conditions">Terms</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/contact">Contact</Link></li>
+                            <li className="mb-2"><Link className="text-white-50 text-decoration-none" to="/help-centre">Help Centre</Link></li>
                         </ul>
                     </div>
 

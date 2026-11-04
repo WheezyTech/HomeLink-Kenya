@@ -50,6 +50,18 @@ import PaymentHistory from "../pages/tenant/PaymentHistory";
 import LeaseDetails from "../pages/tenant/LeaseDetails";
 import RentalPassport from "../pages/dashboard/RentalPassport";
 import { useAuth } from "../context/AuthContext";
+import PrivacyPolicy from "../pages/legal/PrivacyPolicy";
+import TermsAndConditions from "../pages/legal/TermsAndConditions";
+import ContactPage from "../pages/legal/ContactPage";
+import HelpCentre from "../pages/legal/HelpCentre";
+import FAQPage from "../pages/legal/FAQPage";
+import AboutPage from "../pages/legal/AboutPage";
+import CareersPage from "../pages/legal/CareersPage";
+import BlogPage from "../pages/legal/BlogPage";
+import AgentsPage from "../pages/legal/AgentsPage";
+import ServicesPage from "../pages/legal/ServicesPage";
+import ProviderLandingPage from "../pages/legal/ProviderLandingPage";
+import MyRequestsPage from "../pages/legal/MyRequestsPage";
 
 function BookingsByRole() {
     const { user } = useAuth();
@@ -78,6 +90,81 @@ function AppRoutes() {
             <Route 
                 path="/register" 
                 element={<Register />} 
+            />
+
+            <Route
+                path="/privacy-policy"
+                element={<PrivacyPolicy />}
+            />
+
+            <Route
+                path="/privacy"
+                element={<PrivacyPolicy />}
+            />
+
+            <Route
+                path="/terms-and-conditions"
+                element={<TermsAndConditions />}
+            />
+
+            <Route
+                path="/terms"
+                element={<TermsAndConditions />}
+            />
+
+            <Route
+                path="/contact"
+                element={<ContactPage />}
+            />
+
+            <Route
+                path="/help-centre"
+                element={<HelpCentre />}
+            />
+
+            <Route
+                path="/help"
+                element={<HelpCentre />}
+            />
+
+            <Route
+                path="/faq"
+                element={<FAQPage />}
+            />
+
+            <Route
+                path="/about"
+                element={<AboutPage />}
+            />
+
+            <Route
+                path="/careers"
+                element={<CareersPage />}
+            />
+
+            <Route
+                path="/blog"
+                element={<BlogPage />}
+            />
+
+            <Route
+                path="/agents-page"
+                element={<AgentsPage />}
+            />
+
+            <Route
+                path="/services-page"
+                element={<ServicesPage />}
+            />
+
+            <Route
+                path="/providers"
+                element={<ProviderLandingPage />}
+            />
+
+            <Route
+                path="/my-requests"
+                element={<MyRequestsPage />}
             />
 
             {/* Property pages */}

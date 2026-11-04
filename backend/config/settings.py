@@ -248,6 +248,11 @@ DEFAULT_FROM_EMAIL = os.getenv(
     EMAIL_HOST_USER,
 )
 
+CONTACT_SUPPORT_EMAIL = os.getenv(
+    "CONTACT_SUPPORT_EMAIL",
+    DEFAULT_FROM_EMAIL,
+)
+
 FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
     "http://localhost:5173",

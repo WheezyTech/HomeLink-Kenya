@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from django.conf import settings
+from common.views import ContactSubmissionCreateView
 from django.conf.urls.static import static
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -60,11 +61,17 @@ urlpatterns = [
         "api/leases/",
         include("leases.api.urls"),
     ),
+
+    path(
+        "api/contact/submit/",
+        ContactSubmissionCreateView.as_view(),
+        name="contact-submit",
+    ),
+
     path(
         "api/applications/",
         include("applications.api.urls"),
     ),
-
     path(
         "api/ai/",
         include("ai.api.urls"),
