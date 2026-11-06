@@ -95,7 +95,7 @@ function Navbar() {
                     className="navbar-brand fw-bold fs-2 text-primary"
                     to="/"
                 >
-                    🏠 HomeLink
+                    🏠 HomeLink Kenya
                 </Link>
 
 
